@@ -8,3 +8,14 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Generated PDFs (outputs)
+filled_docs/*.pdf
+filled_docs/*.zip
+
+# macOS
+.DS_Store
+
+# Configuration files with potentially sensitive data
+custom_holidays.json
+internship_template.json

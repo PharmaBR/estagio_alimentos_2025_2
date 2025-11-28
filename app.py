@@ -538,9 +538,9 @@ def validate_form_data(user_data: dict, internship_data: dict) -> tuple[bool, Li
         if not internship_data.get(field, "").strip():
             errors.append(f"Campo '{field}' é obrigatório")
     
-    # Validar turnos
+    # Validar turnos (devem ter sido carregados do template)
     if not st.session_state.shifts:
-        errors.append("Adicione pelo menos um turno")
+        errors.append("Nenhum turno encontrado. Certifique-se de que o supervisor configurou o template.")
     
     return len(errors) == 0, errors
 
@@ -559,73 +559,52 @@ def main():
     st.title("📄 Sistema de Preenchimento de Documentos de Estágio")
     st.markdown("---")
     
-    # Verificar se existe template do supervisor
+    # Carregar template do supervisor silenciosamente
     template_config = load_template_config()
     
     if template_config:
-        with st.expander("📋 Template Configurado pelo Supervisor", expanded=False):
-            col1, col2, col3 = st.columns(3)
+        # Auto-carregar template se ainda não foi carregado
+        if not st.session_state.shifts:
+            # Gerar turnos baseado no template
+            all_dates = generate_date_range(
+                date.fromisoformat(template_config['start_date']),
+                date.fromisoformat(template_config['end_date'])
+            )
             
-            with col1:
-                st.write("**Período:**")
-                st.write(f"De {date.fromisoformat(template_config['start_date']).strftime('%d/%m/%Y')}")
-                st.write(f"Até {date.fromisoformat(template_config['end_date']).strftime('%d/%m/%Y')}")
+            filtered_dates = [
+                d for d in all_dates 
+                if d.weekday() in template_config['weekdays'] and not is_brazilian_holiday(d)
+            ]
             
-            with col2:
-                st.write("**Horário:**")
-                st.write(f"{template_config['start_time']} às {template_config['end_time']}")
+            # Adicionar turnos automaticamente
+            for date_obj in filtered_dates:
+                date_str = date_obj.strftime("%d/%m/%Y")
                 
-                weekday_names = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-                days = ", ".join([weekday_names[d] for d in template_config['weekdays']])
-                st.write(f"**Dias:** {days}")
-            
-            with col3:
-                descriptions_count = len([d for d in template_config.get('activity_descriptions', {}).values() if d.strip()])
-                st.metric("Encontros", descriptions_count)
-            
-            if st.button("📥 Carregar Template do Supervisor", type="primary", use_container_width=True):
-                # Gerar turnos baseado no template
-                all_dates = generate_date_range(
-                    date.fromisoformat(template_config['start_date']),
-                    date.fromisoformat(template_config['end_date'])
-                )
-                
-                filtered_dates = [
-                    d for d in all_dates 
-                    if d.weekday() in template_config['weekdays'] and not is_brazilian_holiday(d)
-                ]
-                
-                # Limpar turnos existentes
-                st.session_state.shifts = []
-                st.session_state.activity_descriptions = {}
-                
-                # Adicionar turnos
-                for date_obj in filtered_dates:
-                    date_str = date_obj.strftime("%d/%m/%Y")
-                    
-                    # Pegar descrição do template ou usar "FERIADO" se for feriado
-                    if is_brazilian_holiday(date_obj):
-                        activity = "FERIADO"
-                    else:
-                        activity = template_config.get('activity_descriptions', {}).get(
-                            date_str,
-                            template_config.get('default_activity', 'Atividade de estágio')
-                        )
-                    
-                    shift = ShiftData(
-                        horario_inicio=template_config['start_time'],
-                        horario_fim=template_config['end_time'],
-                        data=date_str,
-                        atividade_realizada=activity
+                # Pegar descrição do template ou usar "FERIADO" se for feriado
+                if is_brazilian_holiday(date_obj):
+                    activity = "FERIADO"
+                else:
+                    activity = template_config.get('activity_descriptions', {}).get(
+                        date_str,
+                        template_config.get('default_activity', 'Atividade de estágio')
                     )
-                    st.session_state.shifts.append(shift)
-                    
-                    # Adicionar descrição detalhada se existir
-                    if date_str in template_config.get('activity_descriptions', {}):
-                        st.session_state.activity_descriptions[date_str] = template_config['activity_descriptions'][date_str]
                 
-                st.success(f"✅ Template carregado! {len(st.session_state.shifts)} turnos adicionados.")
-                st.rerun()
+                shift = ShiftData(
+                    horario_inicio=template_config['start_time'],
+                    horario_fim=template_config['end_time'],
+                    data=date_str,
+                    atividade_realizada=activity
+                )
+                st.session_state.shifts.append(shift)
+                
+                # Adicionar descrição detalhada se existir
+                if date_str in template_config.get('activity_descriptions', {}):
+                    st.session_state.activity_descriptions[date_str] = template_config['activity_descriptions'][date_str]
+        
+        # Mostrar apenas informação resumida
+        st.info(f"✅ Template de estágio carregado: {len(st.session_state.shifts)} encontros configurados pelo supervisor.")
+    else:
+        st.warning("⚠️ Nenhum template configurado pelo supervisor. Entre em contato com seu supervisor.")
     
     st.markdown("---")
     
@@ -643,11 +622,88 @@ def main():
     
     st.markdown("---")
     
-    render_shifts_form()
+    # Mostrar resumo dos turnos (somente visualização)
+    if st.session_state.shifts:
+        st.header("📋 Turnos Cadastrados pelo Supervisor")
+        
+        with st.expander("Ver Detalhes dos Turnos", expanded=False):
+            # Ordenar turnos por data
+            display_shifts = sorted(
+                st.session_state.shifts, 
+                key=lambda x: tuple(reversed(x.data.split('/')))
+            )
+            
+            for shift in display_shifts:
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    if shift.atividade_realizada == "FERIADO":
+                        st.write(f"🎉 **{shift.data}** | {shift.horario_inicio} - {shift.horario_fim}")
+                        st.caption("⚠️ FERIADO")
+                    else:
+                        st.write(f"**{shift.data}** | {shift.horario_inicio} - {shift.horario_fim}")
+                        st.caption(shift.atividade_realizada)
+                
+                with col2:
+                    horas = shift.get_hours()
+                    st.metric("Horas", f"{horas:.1f}h")
+                
+                st.divider()
+            
+            # Estatísticas
+            total_horas = sum([shift.get_hours() for shift in st.session_state.shifts])
+            feriados_count = sum([1 for shift in st.session_state.shifts if shift.atividade_realizada == "FERIADO"])
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total de Horas", f"{total_horas:.1f}h")
+            with col2:
+                st.metric("Total de Turnos", len(st.session_state.shifts))
+            with col3:
+                st.metric("Feriados", feriados_count)
+    
     st.markdown("---")
     
-    # Descrições de atividades
-    render_activity_descriptions_form(internship_data)
+    # Mostrar resumo de carga horária
+    if st.session_state.shifts and internship_data.get('carga_horaria'):
+        st.header("📊 Resumo de Carga Horária")
+        
+        total_shift_hours = sum([shift.get_hours() for shift in st.session_state.shifts])
+        carga_horaria = internship_data.get("carga_horaria", 100)
+        missing_hours = max(0, carga_horaria - total_shift_hours)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Carga Horária Total", f"{carga_horaria}h")
+        
+        with col2:
+            st.metric("Horas de Turnos", f"{total_shift_hours:.1f}h")
+        
+        with col3:
+            if missing_hours > 0:
+                st.metric("Horas Faltantes", f"{missing_hours:.1f}h", delta=f"-{missing_hours:.1f}h")
+            else:
+                st.metric("Status", "✅ Completo", delta="0h")
+        
+        with col4:
+            if missing_hours > 0:
+                atividade_obrigatoria_hours = min(20, missing_hours)
+                remaining = missing_hours - atividade_obrigatoria_hours
+                complementary_hours = atividade_obrigatoria_hours + remaining
+                st.metric("Horas Complementares", f"{complementary_hours:.1f}h")
+            else:
+                st.metric("Horas Complementares", "0h")
+        
+        # Explicação
+        if missing_hours > 0:
+            st.info(
+                f"⚙️ **Cálculo Automático:** Faltam {missing_hours:.1f}h para completar a carga horária. "
+                f"Serão adicionadas automaticamente:\n"
+                f"- **{min(20, missing_hours):.1f}h** de '{internship_data.get('titulo_atividade_obrigatoria', 'Atividade Obrigatória')}'\n" +
+                (f"- **{max(0, missing_hours - 20):.1f}h** de 'Preenchimento de Documentos'" if missing_hours > 20 else "")
+            )
+    
     st.markdown("---")
     
     # Botão de gerar documentos

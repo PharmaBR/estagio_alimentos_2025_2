@@ -136,8 +136,21 @@ class FrequencySheetPDFFiller(BasePDFFiller):
     
     def fill_page(self, page, doc) -> None:
         """Preenche a folha de frequência"""
-        # TODO: Implementar coordenadas e lógica específica
         print(f"  Preenchendo frequência {self.sheet_number - 1}")
+        
+        # Coordenadas para nome e matrícula (RA)
+        FIELD_COORDS = {
+            'nome': (85, 135),      # Coordenadas do campo nome
+            'matricula': (420, 135)  # Coordenadas do campo matrícula/RA
+        }
+        
+        # Preenche nome
+        page.insert_text(FIELD_COORDS['nome'], self.user_data.nome, 
+                        fontsize=self.font_size)
+        
+        # Preenche matrícula (RA)
+        page.insert_text(FIELD_COORDS['matricula'], self.user_data.ra, 
+                        fontsize=self.font_size)
 
 
 class InternshipDeclarationPDFFiller(BasePDFFiller):
@@ -160,8 +173,21 @@ class InternshipDeclarationPDFFiller(BasePDFFiller):
     
     def fill_page(self, page, doc) -> None:
         """Preenche a declaração de realização de estágio"""
-        # TODO: Implementar coordenadas e lógica específica
         print(f"  Preenchendo declaração de realização de estágio")
+        
+        # Coordenadas para nome e matrícula (RA)
+        FIELD_COORDS = {
+            'nome': (125, 237),      # Coordenadas do campo nome
+            'matricula': (450, 237)  # Coordenadas do campo matrícula/RA
+        }
+        
+        # Preenche nome
+        page.insert_text(FIELD_COORDS['nome'], self.user_data.nome, 
+                        fontsize=self.font_size)
+        
+        # Preenche matrícula (RA)
+        page.insert_text(FIELD_COORDS['matricula'], self.user_data.ra, 
+                        fontsize=self.font_size)
 
 
 class MandatoryActivityPDFFiller(BasePDFFiller):
@@ -184,8 +210,21 @@ class MandatoryActivityPDFFiller(BasePDFFiller):
     
     def fill_page(self, page, doc) -> None:
         """Preenche a declaração de atividade obrigatória"""
-        # TODO: Implementar coordenadas e lógica específica
         print(f"  Preenchendo declaração de atividade obrigatória")
+        
+        # Coordenadas para nome e matrícula (RA)
+        FIELD_COORDS = {
+            'nome': (280, 235),      # Coordenadas do campo nome
+            'matricula': (80, 265)  # Coordenadas do campo matrícula/RA
+        }
+        
+        # Preenche nome
+        page.insert_text(FIELD_COORDS['nome'], self.user_data.nome, 
+                        fontsize=self.font_size)
+        
+        # Preenche matrícula (RA)
+        page.insert_text(FIELD_COORDS['matricula'], self.user_data.ra, 
+                        fontsize=self.font_size)
 
 
 class DocFiller:
@@ -200,11 +239,14 @@ class DocFiller:
         return filler.fill()
     
     def fill_frequency_sheets(self) -> List[str]:
-        """Preenche todas as folhas de frequência necessárias"""
+        """Preenche todas as folhas de frequência necessárias (máximo 3)"""
         output_files = []
         # Divide os turnos em grupos (assumindo ~10 turnos por folha)
-        shifts_per_sheet = 10
+        shifts_per_sheet = 6
         num_sheets = (len(self.data.shifts) + shifts_per_sheet - 1) // shifts_per_sheet
+        
+        # Limita a 3 folhas de frequência
+        num_sheets = min(num_sheets, 3)
         
         for i in range(num_sheets):
             start_idx = i * shifts_per_sheet
