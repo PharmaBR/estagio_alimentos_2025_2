@@ -4,9 +4,9 @@ Aplicação Streamlit para preenchimento automático de documentos de estágio.
 import streamlit as st
 from datetime import date, time
 from typing import List
-import zipfile
 import os
 import json
+import fitz  # PyMuPDF
 
 from models import UserData, InternshipData, ShiftData, DocumentData, ActivityStorage
 from docs_filler import DocFiller
@@ -52,17 +52,30 @@ def remove_shift(index: int):
     st.session_state.shifts.pop(index)
 
 
-def create_zip_file(files: dict) -> str:
-    """Cria um arquivo ZIP com todos os documentos gerados"""
-    zip_path = "./filled_docs/documentos_estagio.zip"
+def merge_pdfs_to_single_file(files: dict, ra: str) -> str:
+    """Mescla todos os PDFs gerados em um único arquivo"""
+    output_path = f"./filled_docs/documentos_estagio_{ra}.pdf"
     
-    with zipfile.ZipFile(zip_path, 'w') as zipf:
-        for category, file_list in files.items():
-            for file_path in file_list:
+    # Criar documento PDF final
+    merged_pdf = fitz.open()
+    
+    # Ordem desejada dos documentos
+    order = ["checklist", "frequency_sheets", "internship_declaration", "mandatory_activity"]
+    
+    for category in order:
+        if category in files:
+            for file_path in files[category]:
                 if os.path.exists(file_path):
-                    zipf.write(file_path, os.path.basename(file_path))
+                    # Abrir e adicionar cada PDF
+                    pdf_document = fitz.open(file_path)
+                    merged_pdf.insert_pdf(pdf_document)
+                    pdf_document.close()
     
-    return zip_path
+    # Salvar PDF mesclado
+    merged_pdf.save(output_path)
+    merged_pdf.close()
+    
+    return output_path
 
 
 def render_user_data_form():
@@ -761,8 +774,8 @@ def main():
                         doc_filler = DocFiller(document_data)
                         results = doc_filler.fill_all_documents()
                         
-                        # Criar ZIP
-                        zip_path = create_zip_file(results)
+                        # Mesclar todos os PDFs em um único arquivo
+                        merged_pdf_path = merge_pdfs_to_single_file(results, user_data['ra'])
                         
                         # Sucesso
                         st.success("✅ Documentos gerados com sucesso!")
@@ -774,13 +787,13 @@ def main():
                                 for file in files:
                                     st.write(f"  • {os.path.basename(file)}")
                         
-                        # Botão de download
-                        with open(zip_path, "rb") as f:
+                        # Botão de download do PDF mesclado
+                        with open(merged_pdf_path, "rb") as f:
                             st.download_button(
-                                label="⬇️ Baixar todos os documentos (ZIP)",
+                                label="⬇️ Baixar todos os documentos (PDF único)",
                                 data=f,
-                                file_name="documentos_estagio.zip",
-                                mime="application/zip",
+                                file_name=f"documentos_estagio_{user_data['ra']}.pdf",
+                                mime="application/pdf",
                                 use_container_width=True
                             )
                         
