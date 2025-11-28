@@ -80,8 +80,8 @@ def render_user_data_form():
     with col2:
         telefone_ddd = st.text_input("DDD*", placeholder="11", max_chars=2)
         telefone_numero = st.text_input("Telefone*", placeholder="987654321", max_chars=9)
-        email = st.text_input("E-mail*", placeholder="joao.silva@example.com")
-        semestre = st.text_input("Semestre*", placeholder="2024.1")
+        email = st.text_input("E-mail*", placeholder="joao.silva@aluno.unip.br")
+        semestre = st.text_input("Semestre*", placeholder="2025/2")
     
     data_assinatura = st.text_input(
         "Data de assinatura*",
