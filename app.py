@@ -85,8 +85,8 @@ def render_user_data_form():
     
     data_assinatura = st.text_input(
         "Data de assinatura*",
-        placeholder="Brasília, 28 de outubro de 2025",
-        help="Formato livre, ex: 'Brasília, 28 de outubro de 2025'"
+        value="Brasília, 28 de Novembro de 2025",
+        help="Formato livre, ex: 'Brasília, 28 de Novembro de 2025'"
     )
     
     return {
@@ -111,21 +111,21 @@ def render_internship_data_form():
     with col1:
         disciplina_estagio = st.text_input(
             "Disciplina de Estágio*",
-            placeholder="Estágio Supervisionado I"
+            value="Alimentos"
         )
         codigo_disciplina = st.text_input(
             "Código da Disciplina*",
-            placeholder="EST001"
+            value="7433-100"
         )
         local_estagio = st.text_input(
             "Local do Estágio*",
-            placeholder="Hospital Central"
+            value="UNIP"
         )
     
     with col2:
         supervisor_estagio = st.text_input(
             "Supervisor do Estágio*",
-            placeholder="Dr. Maria Santos"
+            value="Breno Silva de Abreu"
         )
         carga_horaria = st.number_input(
             "Carga Horária Total*",
@@ -135,7 +135,7 @@ def render_internship_data_form():
         )
         titulo_atividade = st.text_input(
             "Título da Atividade Obrigatória*",
-            placeholder="Atividades de Assistência Farmacêutica"
+            value="Análise de Rotulagem"
         )
     
     return {
