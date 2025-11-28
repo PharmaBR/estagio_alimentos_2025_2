@@ -1,0 +1,31 @@
+{
+  "start_date": "2025-08-15",
+  "end_date": "2025-12-12",
+  "start_time": "13:00",
+  "end_time": "18:00",
+  "weekdays": [
+    4
+  ],
+  "document_date": "Brasília, 28 de outubro de 2025",
+  "default_activity": "teste",
+  "activity_descriptions": {
+    "15/08/2025": "teste1",
+    "12/09/2025": "teste 5",
+    "05/09/2025": "teste 4",
+    "26/09/2025": "teste 7",
+    "03/10/2025": "teste 8",
+    "10/10/2025": "teste 9",
+    "17/10/2025": "teste 10",
+    "24/10/2025": "teste 11",
+    "31/10/2025": "teste 12",
+    "07/11/2025": "teste 13",
+    "14/11/2025": "teste 14",
+    "21/11/2025": "teste 15",
+    "28/11/2025": "teste 16",
+    "12/12/2025": "teste 18",
+    "05/12/2025": "teste 17",
+    "29/08/2025": "teste 3",
+    "22/08/2025": "teste 2",
+    "19/09/2025": "teste 6"
+  }
+}
