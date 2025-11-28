@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# UV lock file (use requirements.txt for deployment)
+uv.lock
+
 # Generated PDFs (outputs)
 filled_docs/*.pdf
 filled_docs/*.zip
