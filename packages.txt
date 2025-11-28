@@ -1,2 +1,7 @@
 libmupdf-dev
 mupdf-tools
+libfreetype6-dev
+libharfbuzz-dev
+libjpeg-dev
+libopenjp2-7-dev
+libgumbo-dev
