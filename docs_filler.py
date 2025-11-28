@@ -140,8 +140,8 @@ class FrequencySheetPDFFiller(BasePDFFiller):
         
         # Coordenadas para nome e matrícula (RA)
         FIELD_COORDS = {
-            'nome': (95, 175),      # Coordenadas do campo nome
-            'matricula': (420, 175)  # Coordenadas do campo matrícula/RA
+            'nome': (95, 169),      # Coordenadas do campo nome
+            'matricula': (420, 169)  # Coordenadas do campo matrícula/RA
         }
         
         # Preenche nome
@@ -214,7 +214,7 @@ class MandatoryActivityPDFFiller(BasePDFFiller):
         
         # Coordenadas para nome e matrícula (RA)
         FIELD_COORDS = {
-            'nome': (280, 275),      # Coordenadas do campo nome
+            'nome': (280, 269),      # Coordenadas do campo nome
             'matricula': (80, 295)  # Coordenadas do campo matrícula/RA
         }
         
