@@ -158,6 +158,16 @@ filler = DocFiller(document_data)
 filler.fill_all_documents()
 ```
 
+## 🧰 Utilitários opcionais
+
+Há alguns scripts de inspeção (`inspect_docx_mergefields.py`) que usam `docx-mailmerge`. Essa biblioteca é opcional para a geração principal de documentos e, devido a limitações da versão publicada, não está no `requirements.txt`. Instale manualmente com:
+
+```
+pip install "docx-mailmerge<=0.5.0"
+```
+
+Esses scripts são úteis para investigar campos de mesclagem nos templates DOCX, mas não são necessários em tempo de execução da aplicação Streamlit.
+
 ## 🛠️ Tecnologias
 
 - **Python 3.12+**
