@@ -3,13 +3,16 @@ Aplicação Streamlit para preenchimento automático de documentos de estágio.
 """
 import streamlit as st
 from datetime import date, time
-from typing import List
+from typing import List, Tuple
 import os
 import json
 import fitz  # PyMuPDF
 
 from models import UserData, InternshipData, ShiftData, DocumentData, ActivityStorage
 from docs_filler import DocFiller
+from mid_internship_fillers import CompanyActivitiesDocxFiller, SupervisionReportDocxFiller
+import datetime
+import zipfile
 from date_utils import (
     generate_date_range, is_brazilian_holiday, get_holiday_name, 
     get_weekday_name, get_custom_holidays
@@ -28,6 +31,28 @@ def load_template_config() -> dict:
         except:
             return {}
     return {}
+
+
+def generate_mid_internship_documents(document_data: DocumentData, ra: str) -> Tuple[str, bool]:
+    """Gera os documentos intermediários e retorna o caminho do ZIP e se faltou conversão para PDF"""
+    fillers = (
+        CompanyActivitiesDocxFiller,
+        SupervisionReportDocxFiller,
+    )
+    generated_paths: list[str] = []
+    for filler_cls in fillers:
+        filler = filler_cls(document_data)
+        generated_paths.append(filler.fill())
+
+    mid_zip = f"./filled_docs/mid_documents_{ra}.zip"
+    os.makedirs(os.path.dirname(mid_zip), exist_ok=True)
+    with zipfile.ZipFile(mid_zip, "w") as zf:
+        for path in generated_paths:
+            if path and os.path.exists(path):
+                zf.write(path, os.path.basename(path))
+
+    missing_pdf = all(p.lower().endswith('.docx') for p in generated_paths if p)
+    return mid_zip, missing_pdf
 
 
 def init_session_state():
@@ -98,8 +123,8 @@ def render_user_data_form():
     
     data_assinatura = st.text_input(
         "Data de assinatura*",
-        value="Brasília, 28 de Novembro de 2025",
-        help="Formato livre, ex: 'Brasília, 28 de Novembro de 2025'"
+        value="Brasília, 12 de Junho de 2026",
+        help="Formato livre, ex: 'Brasília, 12 de Junho de 2026'"
     )
     
     return {
@@ -718,14 +743,60 @@ def main():
             )
     
     st.markdown("---")
-    
-    # Botão de gerar documentos
+
+    # Preparar dados para geração de documentos
+    user = UserData(**user_data)
+    internship = InternshipData(**internship_data)
+    activity_storage_list = [
+        ActivityStorage(encounter_date=date_str, description=desc)
+        for date_str, desc in st.session_state.activity_descriptions.items()
+    ]
+    document_data = DocumentData(
+        user=user,
+        internship=internship,
+        shifts=st.session_state.shifts,
+        activity_descriptions=activity_storage_list
+    )
+
+    # Seção de Documentos Intermediários
+    st.subheader("📝 Documentos Intermediários")
+    if st.button("✅ Gerar Documentos Intermediários", type="secondary", use_container_width=True):
+        try:
+            mid_zip, missing_pdf = generate_mid_internship_documents(document_data, user_data['ra'])
+            if missing_pdf:
+                st.warning(
+                    "⚠️ Nenhuma conversão para PDF detectada. "
+                    "Instale o LibreOffice (soffice) para gerar arquivos PDF automaticamente."
+                )
+            st.success("✅ Documentos Intermediários gerados com sucesso!")
+            with open(mid_zip, "rb") as fmid:
+                st.download_button(
+                    "⬇️ Baixar Documentos Intermediários",
+                    data=fmid,
+                    file_name=os.path.basename(mid_zip),
+                    mime="application/zip",
+                    use_container_width=True
+                )
+        except FileNotFoundError:
+            st.error("⚠️ Arquivos intermediários não configurados. Peça ao supervisor para carregar os templates no sistema.")
+        except Exception as e:
+            st.error(f"❌ Erro ao gerar documentos intermediários: {str(e)}")
+
+    # Botão de gerar documentos finais
     col1, col2, col3 = st.columns([1, 2, 1])
-    
+
     with col2:
-        if st.button("🚀 Gerar Todos os Documentos", type="primary", use_container_width=True):
-            # Validar dados
-            is_valid, errors = validate_form_data(user_data, internship_data)
+        # Somente habilita após junho para evitar confusão
+        final_enabled = datetime.date.today().month >= 6
+        btn_label = "🚀 Gerar Todos os Documentos"
+        if not final_enabled:
+            btn_label = "🚀 Gerar Todos os Documentos (disponível a partir de Junho)"
+        if st.button(btn_label, type="primary", use_container_width=True, disabled=not final_enabled):
+            if not final_enabled:
+                st.warning("Documentos finais estarão disponíveis a partir de Junho.")
+            else:
+                # Validar dados
+                is_valid, errors = validate_form_data(user_data, internship_data)
             
             if not is_valid:
                 st.error("❌ Erro na validação dos dados:")
@@ -779,6 +850,27 @@ def main():
                         
                         # Sucesso
                         st.success("✅ Documentos gerados com sucesso!")
+                        try:
+                            mid_zip, missing_pdf = generate_mid_internship_documents(document_data, user_data['ra'])
+                        except FileNotFoundError:
+                            st.warning("⚠️ Templates dos relatórios intermediários não estão disponíveis. Peça ao supervisor para configurar os templates.")
+                        except Exception as e:
+                            st.error(f"⚠️ Falha ao gerar os documentos intermediários automaticamente: {str(e)}")
+                        else:
+                            st.success("✅ Documentos Intermediários gerados automaticamente!")
+                            with open(mid_zip, "rb") as fmid:
+                                st.download_button(
+                                    "⬇️ Baixar Documentos Intermediários",
+                                    data=fmid,
+                                    file_name=os.path.basename(mid_zip),
+                                    mime="application/zip",
+                                    use_container_width=True
+                                )
+                            if missing_pdf:
+                                st.warning(
+                                    "⚠️ Nenhuma conversão para PDF detectada. "
+                                    "Instale o LibreOffice (soffice) para gerar arquivos PDF automaticamente."
+                                )
                         
                         # Exibir resumo
                         with st.expander("📄 Ver detalhes dos arquivos gerados"):

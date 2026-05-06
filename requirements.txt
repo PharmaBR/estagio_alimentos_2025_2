@@ -2,3 +2,7 @@ streamlit>=1.28.0
 PyMuPDF==1.24.10
 pymupdf-fonts==1.0.5
 holidays>=0.35
+python-docx>=0.8.11
+docx-mailmerge>=0.7.3
+pillow>=9.0.0
+docx2pdf>=0.1.8
